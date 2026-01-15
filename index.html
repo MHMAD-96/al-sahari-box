@@ -1217,6 +1217,73 @@ function render(){
     }); }
   }
 }
+// ===== Drivers CRUD =====
+function addDriver({ name, phone, password, monthlyTarget=1000 }){
+  name = (name||'').trim();
+  phone = (phone||'').trim();
+  password = (password||'').trim();
+
+  if(!name || !password){
+    alert(L('الاسم وكلمة المرور مطلوبين','Name and password are required'));
+    return;
+  }
+
+  const nextId = state.drivers.reduce((m,d)=>Math.max(m, Number(d.id||0)), 0) + 1;
+
+  state.drivers = [
+    ...state.drivers,
+    {
+      id: nextId,
+      name,
+      phone,
+      password,
+      points: 100,
+      active: true,
+      monthlyTarget: Number(monthlyTarget||1000)
+    }
+  ];
+
+  persist();
+  render();
+  alert(L('تمت إضافة السائق ✅','Driver added ✅'));
+}
+
+function updateDriver(id, updates){
+  const idx = state.drivers.findIndex(d=>d.id===id);
+  if(idx === -1) return;
+
+  const u = {...updates};
+  if('name' in u) u.name = (u.name||'').trim();
+  if('phone' in u) u.phone = (u.phone||'').trim();
+  if('password' in u) u.password = (u.password||'').trim();
+  if('monthlyTarget' in u) u.monthlyTarget = Number(u.monthlyTarget||0);
+
+  state.drivers = state.drivers.map(d => d.id===id ? ({...d, ...u}) : d);
+
+  persist();
+  render();
+  alert(L('تم حفظ التعديل ✅','Saved ✅'));
+}
+
+function deleteDriver(id){
+  const d = state.drivers.find(x=>x.id===id);
+  if(!d) return;
+
+  if(!confirm(L('حذف هذا السائق؟','Delete this driver?'))) return;
+
+  // امنع حذف سائق له رحلات (اختياري)
+  const hasTrips = state.trips.some(t => Number(t.driverId) === Number(id));
+  if(hasTrips){
+    alert(L('لا يمكن حذف سائق لديه رحلات مسجلة','Cannot delete a driver that has trips'));
+    return;
+  }
+
+  state.drivers = state.drivers.filter(x => x.id !== id);
+
+  persist();
+  render();
+  alert(L('تم حذف السائق ✅','Driver deleted ✅'));
+}
 
 // ===== Start =====
 try{ recomputeFromTrips(); render(); }catch(e){
